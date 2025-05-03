@@ -1,67 +1,58 @@
-import bcrypt from 'bcrypt'
 import db from './../config/connection'
-
-// Define the Admin interface
+  import { v4 as uuidv4 } from 'uuid'
+  // Define the Admin interface
 interface Admin {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
+  id: string
+  name: string
+  password: string
 }
 
 export class AdminModel {
-  static async createAdmin({ input: any }) {
-    const { name, email, hashedPassword } = input
-
+  static async createAdmin(newAdmin: {
+    name: string
+    password: string
+  }): Promise<Admin> {
+    const { name, password } = newAdmin
+    const id = uuidv4().substring(0, 8) 
     try {
-      db.query(
-        'INSERT INTO administrators (name, email, password) VALUES (?, ?, ?)',
-        [name, email, hashedPassword],
-        (err, results) => {
-          if (err) throw err
-
-          const newAdmin: Admin = {
-            id: results.insertId,
-            name,
-            email,
-            password: hashedPassword
-          }
-
-          return newAdmin
-        }
+      const connection = await db // Esperar a que la conexión se resuelva
+      const [results]: any = await connection.query(
+        'INSERT INTO administradores (id, nombre, password) VALUES (?, ?, ?)',
+        [id, name, password]
       )
-    } catch (error) {
-      console.error('Error creating admin:', error)
+
+      if (results && results.affectedRows === 0) {
+        throw new Error('Admin creation failed')
+      }
+
+      return {
+        id,
+        name,
+        password
+      }
+    } catch (err) {
+      console.error('Error creating admin:', err)
       throw new Error('Error creating admin')
     }
   }
 
-  static async loginAdmin({ input: any }) {
-    const { email, password } = input
-
+  static async findOneAdmin(id: string): Promise<Admin | null> {
     try {
-      db.query(
-        'SELECT * FROM administrators WHERE email = ?',
-        [email],
-        async (err, results) => {
-          if (err) throw err
-          if (results.length === 0) {
-            throw new Error('Admin not found')
-          }
-
-          const admin = results[0]
-          const passwordMatch = await bcrypt.compare(password, admin.password)
-
-          if (passwordMatch) {
-            return admin
-          }
-          else
-            throw new Error('Invalid password')
-        }
+      const connection = await db // Esperar a que la conexión se resuelva
+      const [rows]: any = await connection.query(
+        'SELECT * FROM administradores WHERE id = ?',
+        [id]
       )
-    } catch (error) {
-      console.error('Error logging in admin:', error)
-      throw new Error('Error logging in admin')
+
+      if (rows.length === 0) {
+        return null
+      }
+
+      return rows[0] as Admin
+    } catch (err) {
+      console.error('Error finding admin:', err)
+      throw new Error('Error finding admin')
     }
   }
+  
 }

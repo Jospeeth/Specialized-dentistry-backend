@@ -3,5 +3,5 @@ import { AdminController } from './../controllers/adminController'
 
 export const adminRoutes: Router = Router()
 
-adminRoutes.post('/create')
-adminRoutes.post('/login')
+adminRoutes.post('/create', AdminController.createAdmin)
+//adminRoutes.post('/login', AdminController.loginAdmin);
