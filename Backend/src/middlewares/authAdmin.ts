@@ -1,21 +1,27 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response, NextFunction } from 'express';
 
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-export const authenticateAdmin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const token = req.headers.authorization?.split(' ')[1]
-
-  if (!token) return res.status(403).json({ error: 'Acceso denegado' })
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string)
-    ;(req as Request).admin = decoded
-    next()
-  } catch (error) {
-    res.status(401).json({ error: 'Token inválido' })
-  }
+export interface AuthenticatedRequest extends Request {
+  admin?: any;
 }
+
+export const authenticateAdmin = () => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    const token = req.cookies?.auth_token;
+
+    if (!token) {
+      res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
+      return;
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+      req.admin = decoded; // Attach admin data to the request
+    
+      next(); // Proceed to the next middleware
+    } catch (err) {
+      res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+    }
+  };
+};

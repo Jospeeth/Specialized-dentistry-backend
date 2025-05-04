@@ -3,14 +3,20 @@ import { json, urlencoded } from 'express'
 import { Request, Response } from 'express'
 import { corsMiddleware } from './middlewares/cors'
 import dotenv from 'dotenv'
+import { authenticateAdmin } from './middlewares/authAdmin'
 import { adminRoutes } from './routes/adminRoutes'
+import cookieParser from 'cookie-parser'
+
 const app = express()
 
 dotenv.config()
 const port = process.env.PORT || 3000
 app.use(json())
 app.use(urlencoded({ extended: true }))
+app.use(cookieParser())
 app.use(corsMiddleware())
+app.use(authenticateAdmin())
+
 
 // Import routes
 app.use('/admin', adminRoutes)

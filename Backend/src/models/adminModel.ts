@@ -36,17 +36,40 @@ export class AdminModel {
     }
   }
 
-  static async findOneAdmin(id: string): Promise<Admin | null> {
+  static async findOneAdmin(name: string): Promise<Admin | null> {
     try {
-      const connection = await db // Esperar a que la conexión se resuelva
+      const connection = await db 
       const [rows]: any = await connection.query(
-        'SELECT * FROM administradores WHERE id = ?',
-        [id]
+        'SELECT * FROM administradores WHERE nombre = ?',
+        [name]
       )
 
       if (rows.length === 0) {
         return null
       }
+
+      return {
+        id: rows[0].id,
+        name: rows[0].nombre,
+        password: rows[0].password
+      } as Admin
+    } catch (err) {
+      console.error('Error finding admin:', err)
+      throw new Error('Error finding admin')
+    }
+  }
+
+  static async loginAdmin(name: string, password: string): Promise<Admin | null> {
+    try {
+     const connection = await db
+      const [rows]: any = await connection.query(
+      'SELECT * FROM administradores WHERE nombre = ? AND password = ?',
+      [name, password]
+      )
+      if (rows.length === 0) {
+        return null
+      }
+      
 
       return rows[0] as Admin
     } catch (err) {
