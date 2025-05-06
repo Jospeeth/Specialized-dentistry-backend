@@ -1,23 +1,17 @@
 import db from './../config/connection'
-  import { v4 as uuidv4 } from 'uuid'
-  // Define the Admin interface
-interface Admin {
-  id: string
-  name: string
-  password: string
-}
-
+import { v4 as uuidv4 } from 'uuid'
+import { Admin } from '../utils/schemas'
 export class AdminModel {
   static async createAdmin(newAdmin: {
     name: string
     password: string
   }): Promise<Admin> {
     const { name, password } = newAdmin
-    const id = uuidv4().substring(0, 8) 
+    const id = uuidv4().substring(0, 8)
     try {
       const connection = await db // Esperar a que la conexión se resuelva
       const [results]: any = await connection.query(
-        'INSERT INTO administradores (id, nombre, password) VALUES (?, ?, ?)',
+        'INSERT INTO administrators (id, name, password) VALUES (?, ?, ?)',
         [id, name, password]
       )
 
@@ -38,38 +32,16 @@ export class AdminModel {
 
   static async findOneAdmin(name: string): Promise<Admin | null> {
     try {
-      const connection = await db 
+      const connection = await db
       const [rows]: any = await connection.query(
-        'SELECT * FROM administradores WHERE nombre = ?',
+        'SELECT * FROM administrators WHERE name = ?',
         [name]
       )
 
       if (rows.length === 0) {
         return null
       }
-
-      return {
-        id: rows[0].id,
-        name: rows[0].nombre,
-        password: rows[0].password
-      } as Admin
-    } catch (err) {
-      console.error('Error finding admin:', err)
-      throw new Error('Error finding admin')
-    }
-  }
-
-  static async loginAdmin(name: string, password: string): Promise<Admin | null> {
-    try {
-     const connection = await db
-      const [rows]: any = await connection.query(
-      'SELECT * FROM administradores WHERE nombre = ? AND password = ?',
-      [name, password]
-      )
-      if (rows.length === 0) {
-        return null
-      }
-      
+      // Debugging information removed to avoid exposing sensitive data
 
       return rows[0] as Admin
     } catch (err) {
@@ -77,5 +49,5 @@ export class AdminModel {
       throw new Error('Error finding admin')
     }
   }
-  
+
 }

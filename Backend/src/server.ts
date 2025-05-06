@@ -5,6 +5,7 @@ import { corsMiddleware } from './middlewares/cors'
 import dotenv from 'dotenv'
 import { authenticateAdmin } from './middlewares/authAdmin'
 import { adminRoutes } from './routes/adminRoutes'
+import { patientRoutes } from './routes/patientRoutes'
 import cookieParser from 'cookie-parser'
 
 const app = express()
@@ -15,11 +16,10 @@ app.use(json())
 app.use(urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(corsMiddleware())
-app.use(authenticateAdmin())
-
 
 // Import routes
 app.use('/admin', adminRoutes)
+app.use('/client', authenticateAdmin(), patientRoutes)
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World!')
