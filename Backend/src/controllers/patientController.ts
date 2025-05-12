@@ -41,15 +41,19 @@ export class PatientController {
 
     const createdPatient = await PatientModel.createPatient(newPatientData)
 
-    res.status(201).json({
-      success: true,
-      data: createdPatient,
-      message: 'Patient created successfully'
-    })
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create patient'
-    })
+    if (createdPatient) {
+      res.status(201).json({
+        success: true,
+        data: createdPatient,
+        message: 'Patient created successfully'
+      })
+      return
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create patient'
+      })
+      return
+    }
   }
 }

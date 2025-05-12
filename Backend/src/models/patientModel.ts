@@ -23,6 +23,7 @@ export class PatientModel {
     try {
       const connection = await db
 
+
       const patientId = uuidv4()
 
       const [results]: any = await connection.query(
@@ -38,14 +39,15 @@ export class PatientModel {
           city
         ]
       )
-      console.log('Patient creation result:', results[0]) // Log the result for debugging
+
       if (results && results.affectedRows === 0) {
         throw new Error('Patient creation failed')
       }
 
       const patientIdentification = identification // Use the provided identification as the patient identification
       const [recordResults]: any = await connection.query(
-        'INSERT INTO medical_records (patient_id, general_health_status, allergies, medical_dental_history, consultation_reason, diagnosis, referred_by, orthodontic_observations, notes, patient_identification) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        `INSERT INTO medical_records (patient_id, general_health_status, allergies, medical_dental_history,
+         consultation_reason, diagnosis, referred_by, orthodontic_observations, notes, patient_identification) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           patientId,
           generalHealthStatus,

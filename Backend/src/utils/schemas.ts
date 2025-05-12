@@ -25,3 +25,27 @@ export interface MedicalRecord {
   orthodonticObservations?: string
   notes: string | null
 }
+
+export interface Invoices {
+  patientId: string
+  total: number
+  paid: number
+}
+
+export interface TreatmentBudget {
+  details: string
+  value: number
+}
+
+export interface AccountStatus {
+  patientId: string
+  date: Date
+  details: string
+  value: number
+  pay: number
+  total: number
+  paymentMethod: number
+
+}
+
+
