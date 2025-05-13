@@ -19,10 +19,10 @@ export class PatientModel {
       orthodonticObservations,
       notes
     } = medicalRecord
+    const connection = await db
 
     try {
-      const connection = await db
-
+      await connection.beginTransaction()
 
       const patientId = uuidv4()
 
@@ -65,6 +65,7 @@ export class PatientModel {
       if (recordResults && recordResults.affectedRows === 0) {
         throw new Error('Medical record creation failed')
       }
+      await connection.commit()
 
       return {
         firstName,
@@ -85,8 +86,8 @@ export class PatientModel {
         notes
       } as Patient & MedicalRecord // Return the patient and medical record data
     } catch (error) {
-      console.error('Error creating patient:', error)
-      throw new Error('Error creating patient')
+      await connection.rollback()
+      throw new Error(`${error}Error creating patient`)
     }
   }
 
