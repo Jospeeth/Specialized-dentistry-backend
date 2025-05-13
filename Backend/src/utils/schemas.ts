@@ -39,11 +39,8 @@ export interface TreatmentBudget {
 
 export interface AccountStatus {
   patientId: string
-  date: Date
   details: string
-  value: number
   pay: number
-  total: number
   paymentMethod: number
 
 }
