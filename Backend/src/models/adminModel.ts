@@ -42,7 +42,6 @@ export class AdminModel {
         return null
       }
       // Debugging information removed to avoid exposing sensitive data
-
       return rows[0] as Admin
     } catch (err) {
       console.error('Error finding admin:', err)

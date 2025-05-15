@@ -4,26 +4,24 @@ export interface Admin {
   password: string
 }
 
-
 export interface Patient {
-  firstName: string 
-  lastName: string 
-  identification: string 
-  age: number 
-  phone?: string 
-  address?: string 
-  city?: string 
- 
+  firstName: string
+  lastName: string
+  identification?: string
+  age: number
+  phone?: string
+  address?: string
+  city?: string
 }
 export interface MedicalRecord {
-  generalHealthStatus: string
-  allergies: string
-  medicalDentalHistory: string
-  consultationReason: string
-  diagnosis: string
-  referredBy: string | null
+  generalHealthStatus?: string
+  allergies?: string
+  medicalDentalHistory?: string
+  consultationReason?: string
+  diagnosis?: string
+  referredBy?: string | null
   orthodonticObservations?: string
-  notes: string | null
+  notes?: string | null
 }
 
 export interface Invoices {
@@ -42,7 +40,10 @@ export interface AccountStatus {
   details: string
   pay: number
   paymentMethod: number
-
 }
-
-
+export interface NextVisit {
+  patientId: string
+  nextVisitDate: Date
+  plannedTreatment: string
+  observations?: string
+}

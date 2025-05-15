@@ -5,7 +5,6 @@ import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 dotenv.config()
 
-
 export class AdminController {
   static async createAdmin(req: Request, res: Response): Promise<void> {
     try {
@@ -29,9 +28,10 @@ export class AdminController {
 
         const createdAdmin = await AdminModel.createAdmin(newAdmin)
 
+        const { name: adminName } = createdAdmin
         res.status(201).json({
           success: true,
-          data: createdAdmin,
+          data: adminName,
           message: 'Admin created successfully'
         })
       } else {
@@ -62,8 +62,12 @@ export class AdminController {
         })
         return
       }
-       
-      const { id: id, name: nameAdmin, password: hashedPassword } = existingAdmin
+
+      const {
+        id: id,
+        name: nameAdmin,
+        password: hashedPassword
+      } = existingAdmin
       const isPasswordValid = await bcrypt.compare(password, hashedPassword)
       if (!isPasswordValid) {
         res.status(401).json({
@@ -93,8 +97,6 @@ export class AdminController {
           success: true,
           token
         })
-
-    
     } catch (error) {
       console.error('Error in loginAdmin controller:', error)
       res.status(500).json({
