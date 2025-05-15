@@ -1,6 +1,8 @@
-import { Patient, MedicalRecord } from '../utils/schemas'
+import { Patient, MedicalRecord, NextVisit } from '../utils/schemas'
 import { v4 as uuidv4 } from 'uuid'
 import db from '../config/connection'
+import { Next } from 'mysql2/typings/mysql/lib/parsers/typeCast'
+
 export class PatientModel {
   static async createPatient(newPatient: {
     Patient: Patient
@@ -92,6 +94,7 @@ export class PatientModel {
   }
 
   static async getPatientById(patientId: string): Promise<any | null> {
+
     try {
       const connection = await db
       const [rows]: any = await connection.query(
@@ -102,11 +105,45 @@ export class PatientModel {
         return null // Patient not found
       }
       return {
-        id: rows[0].identification
+        id: rows[0]
       } // Return the patient data
     } catch (error) {
       console.error('Error fetching patient:', error)
       throw new Error('Error fetching patient')
+    }
+  }
+  static async getAllPatients(): Promise<Patient> {
+    try {
+      const connection = await db
+      const [patients]: any = await connection.query('SELECT * FROM patients')
+      return patients // Return all patients
+    } catch (error) {
+      console.error('Error fetching all patients:', error)
+      throw new Error('Error fetching all patients')
+    }
+  }
+  static async setNewDate(newDate: NextVisit): Promise<NextVisit> {
+    const { patientId, nextVisitDate, plannedTreatment, observations } = newDate
+
+    const connection = await db
+    try {
+      const [results]: any = await connection.query(
+        'INSERT INTO next_visit (patient_id, scheduled_date, planned_treatment, observations) VALUES (?,?,?,?)',
+        [patientId, nextVisitDate, plannedTreatment, observations]
+      )
+
+      if (results && results.affectedRows === 0) {
+        throw new Error('Failed to set new date')
+      }
+      return {
+        patientId,
+        nextVisitDate,
+        plannedTreatment,
+        observations
+      } as NextVisit // Return the new visit data
+    } catch (error) {
+      console.error('Error setting new date:', error)
+      throw new Error('Error setting new date')
     }
   }
 }

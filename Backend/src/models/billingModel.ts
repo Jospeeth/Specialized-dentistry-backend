@@ -62,8 +62,12 @@ export class BillingModel {
       )
 
       if (invoices.length === 0) {
-       const history= this.getAccountStatusByPatientId(patientId)
-       await conn.commit()
+        const history: any = this.getAccountStatusByPatientId(patientId)
+
+        if (history.length === 0) {
+          new Error('No hay facturas activas para este paciente')
+        }
+        await conn.commit()
         return history
       }
 
@@ -74,18 +78,15 @@ export class BillingModel {
         throw new Error('El monto del pago debe ser positivo ')
       }
 
-      
       if (newPaidAmount > invoice.total) {
         throw new Error('El pago excede el monto total de la factura')
       }
 
-      // Actualizar el pago acumulado
       await conn.query('UPDATE invoices SET paid = paid + ? WHERE id = ?', [
         pay,
         invoiceId
       ])
 
-      // Obtener nuevamente el estado actualizado de la factura
       const [updatedInvoiceResult]: any = await conn.query(
         'SELECT total, paid FROM invoices WHERE id = ?',
         [invoiceId]
@@ -94,7 +95,7 @@ export class BillingModel {
       const updatedInvoice = updatedInvoiceResult[0]
       const remainingBalance = updatedInvoice.total - updatedInvoice.paid
 
-      // Insertar nuevo estado de cuenta con el saldo actualizado
+      // insert a new account status with the updated invoice details
       await conn.query(
         `INSERT INTO account_status (
           invoice_id, 
@@ -114,7 +115,7 @@ export class BillingModel {
         ]
       )
 
-      // Si está completamente pagada, marcar como 'paid'
+      // is alaredy paid,check as 'paid'
       if (updatedInvoice.paid >= updatedInvoice.total) {
         await conn.query(
           `UPDATE invoices 
@@ -159,9 +160,11 @@ export class BillingModel {
         'SELECT * FROM account_status WHERE invoice_id = ? ORDER BY date ASC',
         [invoiceId]
       )
-
+      if (accountStatuses.length === 0) {
+        throw new Error('No hay estados de cuenta para este paciente')
+      }
       await conn.commit()
-      return accountStatuses // devuelve el historial completo
+      return accountStatuses
     } catch (error) {
       await conn.rollback()
       throw error
