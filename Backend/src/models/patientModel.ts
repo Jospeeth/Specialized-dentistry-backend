@@ -1,7 +1,6 @@
 import { Patient, MedicalRecord, NextVisit } from '../utils/schemas'
 import { v4 as uuidv4 } from 'uuid'
 import db from '../config/connection'
-import { Next } from 'mysql2/typings/mysql/lib/parsers/typeCast'
 
 export class PatientModel {
   static async createPatient(newPatient: {
@@ -89,27 +88,31 @@ export class PatientModel {
       } as Patient & MedicalRecord // Return the patient and medical record data
     } catch (error) {
       await connection.rollback()
-      throw new Error(`${error}Error creating patient`)
+      throw error
     }
   }
 
   static async getPatientById(patientId: string): Promise<any | null> {
-
     try {
       const connection = await db
-      const [rows]: any = await connection.query(
+      const [patient]: any = await connection.query(
         'SELECT * FROM patients WHERE identification = ?',
         [patientId]
       )
-      if (rows.length === 0) {
+      if (patient.length === 0) {
         return null // Patient not found
       }
+
+      const [medicalRecord]: any = await connection.query(
+        'SELECT * FROM medical_records WHERE patient_identification = ?',
+        [patientId]
+      )
       return {
-        id: rows[0]
+        patient: patient[0], // Assuming the first row is the patient data
+        medicalRecord: medicalRecord[0] // Assuming the first row is the medical record data
       } // Return the patient data
     } catch (error) {
-      console.error('Error fetching patient:', error)
-      throw new Error('Error fetching patient')
+      throw new Error(error)
     }
   }
   static async getAllPatients(): Promise<Patient> {
@@ -118,8 +121,7 @@ export class PatientModel {
       const [patients]: any = await connection.query('SELECT * FROM patients')
       return patients // Return all patients
     } catch (error) {
-      console.error('Error fetching all patients:', error)
-      throw new Error('Error fetching all patients')
+      throw new Error(error)
     }
   }
   static async setNewDate(newDate: NextVisit): Promise<NextVisit> {
@@ -142,8 +144,101 @@ export class PatientModel {
         observations
       } as NextVisit // Return the new visit data
     } catch (error) {
-      console.error('Error setting new date:', error)
-      throw new Error('Error setting new date')
+      throw new Error(error)
+    }
+  }
+
+  static async updatePatientRecord(
+    patientId: string,
+    updatedData: any
+  ): Promise<any> {
+    const connection = await db
+    const { firstName, lastName, age, phone, address, city } =
+      updatedData.patient
+
+    const {
+      generalHealthStatus,
+      allergies,
+      medicalDentalHistory,
+      consultationReason,
+      diagnosis,
+      referredBy,
+      orthodonticObservations,
+      notes
+    } = updatedData.medicalRecord
+
+    try {
+      await connection.beginTransaction()
+
+      await connection.query(
+        `UPDATE patients SET first_name = ?, last_name = ?, age = ?, phone = ?, address = ?, city = ?
+       WHERE id = ?`,
+        [firstName, lastName, age, phone, address, city, patientId]
+      )
+      // update medical records
+      await connection.query(
+        `UPDATE medical_records SET general_health_status = ?, allergies = ?, medical_dental_history = ?,
+        consultation_reason = ?, diagnosis = ?, referred_by = ?, orthodontic_observations = ?, notes = ?
+        WHERE patient_id = ?`,
+        [
+          generalHealthStatus,
+          allergies,
+          medicalDentalHistory,
+          consultationReason,
+          diagnosis,
+          referredBy,
+          orthodonticObservations,
+          notes,
+          patientId
+        ]
+      )
+
+      await connection.commit()
+      return { success: true }
+    } catch (error) {
+      await connection.rollback()
+      throw error
+    }
+  }
+  // ...existing code...
+
+  static async deletePatient(patientId: string): Promise<void> {
+    const connection = await db
+    try {
+      await connection.beginTransaction()
+      // Elimina registros relacionados primero si hay claves foráneas
+      await connection.query(
+        'DELETE FROM medical_records WHERE patient_identification = ?',
+        [patientId]
+      )
+      await connection.query('DELETE FROM next_visit WHERE patient_id = ?', [
+        patientId
+      ])
+      await connection.query('DELETE FROM invoices WHERE patient_id = ?', [
+        patientId
+      ])
+      await connection.query('DELETE FROM patients WHERE identification = ?', [
+        patientId
+      ])
+      await connection.commit()
+    } catch (error) {
+      await connection.rollback()
+      throw error
+    }
+  }
+
+  static async deleteNextVisit(nextVisitId: string): Promise<void> {
+    const connection = await db
+    try {
+      const [result]: any = await connection.query(
+        'DELETE FROM next_visit WHERE id = ?',
+        [nextVisitId]
+      )
+      if (result.affectedRows === 0) {
+        throw new Error('Next visit not found')
+      }
+    } catch (error) {
+      throw new Error('Error deleting next visit')
     }
   }
 }

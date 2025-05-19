@@ -6,52 +6,56 @@ export class PatientController {
   static async createClient(req: Request, res: Response): Promise<void> {
     const newPatient = req.body as Patient & MedicalRecord
 
-    const existingPatient = await PatientModel.getPatientById(
-      req.body.identification
-    )
-    if (existingPatient) {
-      res.status(409).json({
-        success: false,
-        message: 'Patient already exists'
-      })
-      return
-    }
-
-    const newPatientData = {
-      Patient: {
-        firstName: newPatient.firstName,
-        lastName: newPatient.lastName,
-        identification: newPatient.identification,
-        age: newPatient.age,
-        phone: newPatient.phone,
-        address: newPatient.address,
-        city: newPatient.city
-      },
-      medicalRecord: {
-        generalHealthStatus: newPatient.generalHealthStatus,
-        allergies: newPatient.allergies,
-        medicalDentalHistory: newPatient.medicalDentalHistory,
-        consultationReason: newPatient.consultationReason,
-        diagnosis: newPatient.diagnosis,
-        referredBy: newPatient.referredBy,
-        orthodonticObservations: newPatient.orthodonticObservations,
-        notes: newPatient.notes
+    console.log(newPatient)
+    try {
+      const existingPatient = await PatientModel.getPatientById(
+        req.body.identification
+      )
+      if (existingPatient) {
+        res.status(409).json({
+          success: false,
+          message: 'Patient already exists'
+        })
+        return
       }
-    }
 
-    const createdPatient = await PatientModel.createPatient(newPatientData)
+      const newPatientData = {
+        Patient: {
+          firstName: newPatient.firstName,
+          lastName: newPatient.lastName,
+          identification: newPatient.identification,
+          age: newPatient.age,
+          phone: newPatient.phone,
+          address: newPatient.address,
+          city: newPatient.city
+        },
+        medicalRecord: {
+          generalHealthStatus: newPatient.generalHealthStatus,
+          allergies: newPatient.allergies,
+          medicalDentalHistory: newPatient.medicalDentalHistory,
+          consultationReason: newPatient.consultationReason,
+          diagnosis: newPatient.diagnosis,
+          referredBy: newPatient.referredBy,
+          orthodonticObservations: newPatient.orthodonticObservations,
+          notes: newPatient.notes
+        }
+      }
 
-    if (createdPatient) {
-      res.status(201).json({
-        success: true,
-        data: createdPatient,
-        message: 'Patient created successfully'
-      })
-      return
-    } else {
+      const createdPatient = await PatientModel.createPatient(newPatientData)
+
+      if (createdPatient) {
+        res.status(201).json({
+          success: true,
+          data: createdPatient,
+          message: 'Patient created successfully'
+        })
+        return
+      }
+    } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Failed to create patient'
+        message: 'Failed to create patient',
+        error: error instanceof Error ? error.message : 'Unknown error'
       })
       return
     }
@@ -62,7 +66,6 @@ export class PatientController {
 
     try {
       const patient = await PatientModel.getPatientById(id)
-
       if (!patient) {
         res.status(404).json({
           success: false,
@@ -103,6 +106,7 @@ export class PatientController {
     const newPatientRecord = req.body as Patient & MedicalRecord
 
     const existingPatient = await PatientModel.getPatientById(req.params.id)
+
     if (!existingPatient) {
       res.status(409).json({
         success: false,
@@ -110,29 +114,22 @@ export class PatientController {
       })
       return
     }
+    const patientId = existingPatient.patient.id
 
-    const newRecordData = {
-      Patient: {
-        firstName: newPatientRecord.firstName,
-        lastName: newPatientRecord.lastName,
-        identification: newPatientRecord.identification,
-        age: newPatientRecord.age,
-        phone: newPatientRecord.phone,
-        address: newPatientRecord.address,
-        city: newPatientRecord.city
-      },
-      medicalRecord: {
-        generalHealthStatus: newPatientRecord.generalHealthStatus,
-        allergies: newPatientRecord.allergies,
-        medicalDentalHistory: newPatientRecord.medicalDentalHistory,
-        consultationReason: newPatientRecord.consultationReason,
-        diagnosis: newPatientRecord.diagnosis,
-        referredBy: newPatientRecord.referredBy,
-        orthodonticObservations: newPatientRecord.orthodonticObservations,
-        notes: newPatientRecord.notes
-      }
+    try {
+      await PatientModel.updatePatientRecord(patientId, newPatientRecord)
+
+      res.status(200).json({
+        success: true,
+        message: 'Patient record updated successfully'
+      })
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Error updating patient record',
+        error: error.message
+      })
     }
-    console.log(newRecordData)
   }
 
   static async setNewDate(req: Request, res: Response): Promise<void> {
@@ -150,6 +147,49 @@ export class PatientController {
       res.status(500).json({
         success: false,
         message: 'Error setting new visit date',
+        error: error.message
+      })
+    }
+  }
+  
+
+  static async deletePatient(req: Request, res: Response): Promise<void> {
+    const { id } = req.params
+    try {
+      const existingPatient = await PatientModel.getPatientById(id)
+      if (!existingPatient) {
+        res.status(404).json({
+          success: false,
+          message: 'Patient not found'
+        })
+        return
+      }
+      await PatientModel.deletePatient(id)
+      res.status(200).json({
+        success: true,
+        message: 'Patient deleted successfully'
+      })
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Error deleting patient',
+        error: error.message
+      })
+    }
+  }
+
+  static async deleteNextVisit(req: Request, res: Response): Promise<void> {
+    const { id } = req.params
+    try {
+      await PatientModel.deleteNextVisit(id)
+      res.status(200).json({
+        success: true,
+        message: 'Next visit deleted successfully'
+      })
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Error deleting next visit',
         error: error.message
       })
     }

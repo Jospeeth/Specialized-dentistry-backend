@@ -12,3 +12,6 @@ patientRoutes.post('/new-date', PatientController.setNewDate)
 
 patientRoutes.patch('/update/:id', PatientController.updateRecordPatient)
  
+
+patientRoutes.delete('/delete/:id', PatientController.deletePatient)
+patientRoutes.delete('/next-date/:id', PatientController.deleteNextVisit)
