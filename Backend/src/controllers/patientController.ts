@@ -6,7 +6,6 @@ export class PatientController {
   static async createClient(req: Request, res: Response): Promise<void> {
     const newPatient = req.body as Patient & MedicalRecord
 
-    console.log(newPatient)
     try {
       const existingPatient = await PatientModel.getPatientById(
         req.body.identification

@@ -200,7 +200,6 @@ export class PatientModel {
       throw error
     }
   }
-  // ...existing code...
 
   static async deletePatient(patientId: string): Promise<void> {
     const connection = await db

@@ -20,7 +20,7 @@ app.use(corsMiddleware())
 
 // Import routes
 app.use('/admin', adminRoutes)
-app.use('/client', authenticateAdmin(), patientRoutes)
+app.use('/patients', authenticateAdmin(), patientRoutes)
 app.use('/billing', authenticateAdmin(), billingRoutes)
 
 
