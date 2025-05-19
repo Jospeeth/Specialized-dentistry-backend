@@ -42,7 +42,6 @@ export class AdminController {
         return
       }
     } catch (error) {
-      console.error('Error in createAdmin controller:', error)
       res.status(500).json({
         success: false,
         message: 'Failed to create admin',
@@ -98,7 +97,6 @@ export class AdminController {
           token
         })
     } catch (error) {
-      console.error('Error in loginAdmin controller:', error)
       res.status(500).json({
         success: false,
         message: 'Failed to login admin',

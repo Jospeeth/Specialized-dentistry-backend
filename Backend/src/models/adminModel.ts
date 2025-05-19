@@ -25,7 +25,6 @@ export class AdminModel {
         password
       }
     } catch (err) {
-      console.error('Error creating admin:', err)
       throw new Error('Error creating admin')
     }
   }
@@ -44,7 +43,6 @@ export class AdminModel {
       // Debugging information removed to avoid exposing sensitive data
       return rows[0] as Admin
     } catch (err) {
-      console.error('Error finding admin:', err)
       throw new Error('Error finding admin')
     }
   }
