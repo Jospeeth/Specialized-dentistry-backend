@@ -50,7 +50,6 @@ export class BillingController {
         message: 'Invoice and treatment budget created successfully'
       })
     } catch (error) {
-      console.error('Error creating invoice and treatment budget:', error)
       res.status(500).json({
         success: false,
         message: 'Failed to create invoice and treatment budget'
@@ -73,10 +72,10 @@ export class BillingController {
         message: 'Account status created and history fetched successfully'
       })
     } catch (error) {
-      console.error('Error creating account status:', error)
       res.status(500).json({
         success: false,
-        message: 'Failed to create account status'
+        message: 'Failed to create account status',
+        error: error instanceof Error ? error.message : 'Unknown error'
       })
     }
   }

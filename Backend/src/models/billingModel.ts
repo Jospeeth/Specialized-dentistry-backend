@@ -139,7 +139,6 @@ export class BillingModel {
       } as AccountStatus
     } catch (error) {
       await conn.rollback()
-      console.error('Error en createAccountStatus:', error)
       throw error
     }
   }
