@@ -240,4 +240,21 @@ export class PatientModel {
       throw new Error('Error deleting next visit')
     }
   }
+
+  static async getNextVisit(patientId: string): Promise<NextVisit> {
+    const connection = await db
+    try {
+      const [nextVisit]: any = await connection.query(
+        'SELECT * FROM next_visit WHERE patient_id = ? ORDER BY id DESC LIMIT 1 ',
+        patientId
+      )
+
+      if (nextVisit.length === 0) {
+        return null // No next visit found
+      }
+      return nextVisit[0] // Return the next visit data
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
 }

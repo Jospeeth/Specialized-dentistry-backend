@@ -59,10 +59,9 @@ export class BillingController {
 
   static async createAccountStatus(req: Request, res: Response): Promise<void> {
     const accountStatus = req.body
-    const { patientId } = accountStatus
 
     try {
-      // Crear el nuevo abono
+      // create account status
       const resultAccountStatus =
         await BillingModel.createAccountStatus(accountStatus)
 

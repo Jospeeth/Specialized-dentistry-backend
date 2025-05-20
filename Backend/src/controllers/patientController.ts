@@ -133,7 +133,7 @@ export class PatientController {
 
   static async setNewDate(req: Request, res: Response): Promise<void> {
     const newVisit = req.body
-
+console.log(newVisit)
     try {
       const updatedVisit = await PatientModel.setNewDate(newVisit)
 
@@ -189,6 +189,29 @@ export class PatientController {
       res.status(500).json({
         success: false,
         message: 'Error deleting next visit',
+        error: error.message
+      })
+    }
+  }
+  static async getNextVisit(req: Request, res: Response): Promise<void> {
+    const { id } = req.params
+    try {
+      const nextVisit = await PatientModel.getNextVisit(id)
+      if (!nextVisit) {
+        res.status(404).json({
+          success: false,
+          message: 'Next visit not found'
+        })
+        return 
+      }
+      res.status(200).json({
+        success: true,
+        data: nextVisit
+      })
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Error retrieving next visit',
         error: error.message
       })
     }

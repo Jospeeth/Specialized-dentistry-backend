@@ -73,20 +73,18 @@ export class BillingModel {
 
       const invoice = invoices[0]
       const invoiceId = invoice.id
-      const newPaidAmount = invoice.paid + pay
-      if (pay <= 0 && newPaidAmount <= 0) {
-        throw new Error('El monto del pago debe ser positivo ')
-      }
+      const newPaidAmount = Number(invoice.paid) + pay
+      const remaining = Number(invoice.total) - Number(newPaidAmount)
 
-      if (newPaidAmount > invoice.total) {
+      if (pay > remaining && newPaidAmount <= 0) {
         throw new Error('El pago excede el monto total de la factura')
       }
-
       await conn.query('UPDATE invoices SET paid = paid + ? WHERE id = ?', [
         pay,
         invoiceId
       ])
 
+      // update the invoice status if the invoice is paid has changed
       const [updatedInvoiceResult]: any = await conn.query(
         'SELECT total, paid FROM invoices WHERE id = ?',
         [invoiceId]
