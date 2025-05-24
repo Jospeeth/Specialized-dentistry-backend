@@ -21,8 +21,7 @@ app.use(corsMiddleware())
 // Import routes
 app.use('/admin', adminRoutes)
 app.use('/patients', authenticateAdmin(), patientRoutes)
-app.use('/billing', authenticateAdmin(), billingRoutes)
-
+// app.use('/billing', authenticateAdmin(), billingRoutes)
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World!')

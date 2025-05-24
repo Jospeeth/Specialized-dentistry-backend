@@ -10,6 +10,8 @@ export class PatientController {
       const existingPatient = await PatientModel.getPatientById(
         req.body.identification
       )
+      console.log(existingPatient)
+
       if (existingPatient) {
         res.status(409).json({
           success: false,
@@ -39,8 +41,9 @@ export class PatientController {
           notes: newPatient.notes
         }
       }
-
+      console.log(newPatientData)
       const createdPatient = await PatientModel.createPatient(newPatientData)
+      
 
       if (createdPatient) {
         res.status(201).json({
@@ -133,7 +136,7 @@ export class PatientController {
 
   static async setNewDate(req: Request, res: Response): Promise<void> {
     const newVisit = req.body
-console.log(newVisit)
+    console.log(newVisit)
     try {
       const updatedVisit = await PatientModel.setNewDate(newVisit)
 
@@ -150,7 +153,6 @@ console.log(newVisit)
       })
     }
   }
-  
 
   static async deletePatient(req: Request, res: Response): Promise<void> {
     const { id } = req.params
@@ -202,7 +204,7 @@ console.log(newVisit)
           success: false,
           message: 'Next visit not found'
         })
-        return 
+        return
       }
       res.status(200).json({
         success: true,

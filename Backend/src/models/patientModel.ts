@@ -1,6 +1,6 @@
 import { Patient, MedicalRecord, NextVisit } from '../utils/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import db from '../config/connection'
+import connection from '../config/connection'
 
 export class PatientModel {
   static async createPatient(newPatient: {
@@ -20,53 +20,38 @@ export class PatientModel {
       orthodonticObservations,
       notes
     } = medicalRecord
-    const connection = await db
+
+    const patientId = uuidv4()
 
     try {
-      await connection.beginTransaction()
+      await connection.begin(async (connection) => {
+        const [insertedPatient] = await connection`
+        INSERT INTO patients (
+          id, first_name, last_name, identification, age, phone, address, city
+        ) VALUES (
+          ${patientId}, ${firstName}, ${lastName}, ${identification},
+          ${age}, ${phone}, ${address}, ${city}
+        ) RETURNING *`
 
-      const patientId = uuidv4()
+        if (insertedPatient === undefined || insertedPatient.length === 0) {
+          throw new Error('Patient creation failed')
+        }
 
-      const [results]: any = await connection.query(
-        'INSERT INTO patients (id, first_name, last_name, identification, age, phone, address, city) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          patientId,
-          firstName,
-          lastName,
-          identification,
-          age,
-          phone,
-          address,
-          city
-        ]
-      )
+        const [insertedRecord] = await connection`
+            INSERT INTO medical_records (
+              patient_id, general_health_status, allergies, medical_dental_history,
+              consultation_reason, diagnosis, referred_by, orthodontic_observations,
+              notes, patient_identification
+            ) VALUES (
+              ${patientId}, ${generalHealthStatus}, ${allergies}, ${medicalDentalHistory},
+              ${consultationReason}, ${diagnosis}, ${referredBy}, ${orthodonticObservations},
+              ${notes}, ${identification}
+            ) RETURNING *`
 
-      if (results && results.affectedRows === 0) {
-        throw new Error('Patient creation failed')
-      }
-
-      const patientIdentification = identification // Use the provided identification as the patient identification
-      const [recordResults]: any = await connection.query(
-        `INSERT INTO medical_records (patient_id, general_health_status, allergies, medical_dental_history,
-         consultation_reason, diagnosis, referred_by, orthodontic_observations, notes, patient_identification) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          patientId,
-          generalHealthStatus,
-          allergies,
-          medicalDentalHistory,
-          consultationReason,
-          diagnosis,
-          referredBy,
-          orthodonticObservations,
-          notes,
-          patientIdentification
-        ]
-      )
-
-      if (recordResults && recordResults.affectedRows === 0) {
-        throw new Error('Medical record creation failed')
-      }
-      await connection.commit()
+        if (insertedRecord === undefined || insertedRecord.length === 0) {
+          throw new Error('Medical record creation failed')
+        }
+      })
 
       return {
         firstName,
@@ -85,31 +70,27 @@ export class PatientModel {
         referredBy,
         orthodonticObservations,
         notes
-      } as Patient & MedicalRecord // Return the patient and medical record data
+      } as Patient & MedicalRecord // Return the combined patient and medical record data
     } catch (error) {
-      await connection.rollback()
-      throw error
+      throw new Error('Error creating patient: ' + error.message)
     }
   }
 
   static async getPatientById(patientId: string): Promise<any | null> {
     try {
-      const connection = await db
-      const [patient]: any = await connection.query(
-        'SELECT * FROM patients WHERE identification = ?',
-        [patientId]
-      )
-      if (patient.length === 0) {
+      const [patient]: any = await connection`
+        SELECT * FROM patients WHERE identification = ${patientId};`
+
+      if (patient === undefined || patient.length === 0) {
         return null // Patient not found
       }
 
-      const [medicalRecord]: any = await connection.query(
-        'SELECT * FROM medical_records WHERE patient_identification = ?',
-        [patientId]
-      )
+      const [medicalRecord]: any = await connection`
+        SELECT * FROM medical_records WHERE patient_identification = ${patientId};`
+
       return {
-        patient: patient[0], // Assuming the first row is the patient data
-        medicalRecord: medicalRecord[0] // Assuming the first row is the medical record data
+        patient: patient, // Assuming the first row is the patient data
+        medicalRecord: medicalRecord // Assuming the first row is the medical record data
       } // Return the patient data
     } catch (error) {
       throw new Error(error)
@@ -117,8 +98,10 @@ export class PatientModel {
   }
   static async getAllPatients(): Promise<Patient> {
     try {
-      const connection = await db
-      const [patients]: any = await connection.query('SELECT * FROM patients')
+      const [patients]: any = await connection`SELECT * FROM patients`
+      if (patients.length === 0) {
+        return null // No patients found
+      }
       return patients // Return all patients
     } catch (error) {
       throw new Error(error)
@@ -127,14 +110,13 @@ export class PatientModel {
   static async setNewDate(newDate: NextVisit): Promise<NextVisit> {
     const { patientId, nextVisitDate, plannedTreatment, observations } = newDate
 
-    const connection = await db
     try {
-      const [results]: any = await connection.query(
-        'INSERT INTO next_visit (patient_id, scheduled_date, planned_treatment, observations) VALUES (?,?,?,?)',
-        [patientId, nextVisitDate, plannedTreatment, observations]
-      )
+      const newDate: any = await connection`
+       INSERT INTO next_visit (patient_id, scheduled_date, planned_treatment, observations)
+       VALUES (${patientId}, ${nextVisitDate}, ${plannedTreatment}, ${observations})
+      RETURNING *`
 
-      if (results && results.affectedRows === 0) {
+      if (newDate === undefined || newDate.length === 0) {
         throw new Error('Failed to set new date')
       }
       return {
@@ -152,7 +134,6 @@ export class PatientModel {
     patientId: string,
     updatedData: any
   ): Promise<any> {
-    const connection = await db
     const { firstName, lastName, age, phone, address, city } =
       updatedData.patient
 
@@ -168,72 +149,59 @@ export class PatientModel {
     } = updatedData.medicalRecord
 
     try {
-      await connection.beginTransaction()
+      await connection.begin(async (connection) => {
+        await connection`
+        UPDATE patients SET first_name = ${firstName}, last_name = ${lastName}, age = ${age},
+        phone = ${phone}, address = ${address}, city = ${city} WHERE id = ${patientId}
+        `
+        // update medical records
+        await connection`
+      UPDATE medical_records SET general_health_status = ${generalHealthStatus},
+      allergies = ${allergies}, medical_dental_history = ${medicalDentalHistory},
+      consultation_reason = ${consultationReason}, diagnosis = ${diagnosis},
+      referred_by = ${referredBy}, orthodontic_observations = ${orthodonticObservations},
+      notes = ${notes} WHERE patient_id = ${patientId}
+    `
+      })
 
-      await connection.query(
-        `UPDATE patients SET first_name = ?, last_name = ?, age = ?, phone = ?, address = ?, city = ?
-       WHERE id = ?`,
-        [firstName, lastName, age, phone, address, city, patientId]
-      )
-      // update medical records
-      await connection.query(
-        `UPDATE medical_records SET general_health_status = ?, allergies = ?, medical_dental_history = ?,
-        consultation_reason = ?, diagnosis = ?, referred_by = ?, orthodontic_observations = ?, notes = ?
-        WHERE patient_id = ?`,
-        [
-          generalHealthStatus,
-          allergies,
-          medicalDentalHistory,
-          consultationReason,
-          diagnosis,
-          referredBy,
-          orthodonticObservations,
-          notes,
-          patientId
-        ]
-      )
+      // update patient information
 
-      await connection.commit()
       return { success: true }
     } catch (error) {
-      await connection.rollback()
-      throw error
+      throw Error('Error updating patient record: ' + error)
     }
   }
 
   static async deletePatient(patientId: string): Promise<void> {
-    const connection = await db
     try {
-      await connection.beginTransaction()
-      // Elimina registros relacionados primero si hay claves foráneas
-      await connection.query(
-        'DELETE FROM medical_records WHERE patient_identification = ?',
-        [patientId]
-      )
-      await connection.query('DELETE FROM next_visit WHERE patient_id = ?', [
-        patientId
-      ])
-      await connection.query('DELETE FROM invoices WHERE patient_id = ?', [
-        patientId
-      ])
-      await connection.query('DELETE FROM patients WHERE identification = ?', [
-        patientId
-      ])
-      await connection.commit()
+      await connection.begin(async (connection) => {
+        const [patientDeleted]: any = await connection`
+        DELETE FROM medical_records WHERE patient_identification = ${patientId}
+       RETURNING patient_id`
+        const patientIdToDelete = patientDeleted.patient_id
+
+        await connection`
+        DELETE FROM next_visit WHERE patient_id = ${patientIdToDelete}
+      `
+        await connection`
+        DELETE FROM invoices WHERE patient_id = ${patientIdToDelete}
+      `
+        await connection`
+        DELETE FROM patients WHERE patient_id = ${patientIdToDelete}
+      `
+      })
     } catch (error) {
-      await connection.rollback()
-      throw error
+      throw new Error('Error deleting patient: ' + error)
     }
   }
 
   static async deleteNextVisit(nextVisitId: string): Promise<void> {
-    const connection = await db
     try {
-      const [result]: any = await connection.query(
-        'DELETE FROM next_visit WHERE id = ?',
-        [nextVisitId]
-      )
-      if (result.affectedRows === 0) {
+      const result = await connection`
+        DELETE FROM next_visit WHERE id = ${nextVisitId} RETURNING id
+      `
+
+      if (!result.length) {
         throw new Error('Next visit not found')
       }
     } catch (error) {
@@ -241,20 +209,20 @@ export class PatientModel {
     }
   }
 
-  static async getNextVisit(patientId: string): Promise<NextVisit> {
-    const connection = await db
+  static async getNextVisit(patientId: string): Promise<NextVisit | null> {
     try {
-      const [nextVisit]: any = await connection.query(
-        'SELECT * FROM next_visit WHERE patient_id = ? ORDER BY id DESC LIMIT 1 ',
-        patientId
-      )
+      const nextVisit = await connection`
+        SELECT * FROM next_visit WHERE patient_id = ${patientId}
+        ORDER BY id DESC LIMIT 1
+      `
 
       if (nextVisit.length === 0) {
-        return null // No next visit found
+        return null
       }
-      return nextVisit[0] // Return the next visit data
-    } catch (error) {
-      throw new Error(error)
+
+      return nextVisit[0] as NextVisit // Return the most recent next visit
+    } catch (error: any) {
+      throw new Error(error.message || 'Error retrieving next visit')
     }
   }
 }

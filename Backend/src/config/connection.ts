@@ -1,13 +1,19 @@
-import mysql from 'mysql2/promise'
+import postgres from 'postgres'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
+const connectionSTring = process.env.DATABASE_URL
+
+if (!connectionSTring) {
+  throw new Error('DATABASE_URL is not defined in .env file')
+}
+const connection = postgres(connectionSTring, {
+  max: 1,
+  idle_timeout: 5,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 })
 
 export default connection
